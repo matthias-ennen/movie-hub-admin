@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application'
+}
+
+def signingPropertiesFile = rootProject.file('signing.properties')
+def signingProperties = new Properties()
+if (signingPropertiesFile.exists()) signingPropertiesFile.withInputStream { signingProperties.load(it) }
+def runNumber = System.getenv('GITHUB_RUN_NUMBER')
+def appVersionCode = runNumber ? runNumber.toInteger() : 1
+def adminUrl = System.getenv('MOVIE_HUB_ADMIN_URL') ?: 'https://movie-hub-admin-62459.web.app/'
+if (!adminUrl.startsWith('https://') || !adminUrl.endsWith('/')) {
+    throw new GradleException('MOVIE_HUB_ADMIN_URL must be an HTTPS origin ending in /.')
+}
+
+android {
+    namespace 'de.matthiasennen.moviehubadmin'
+    compileSdk 35
+
+    buildFeatures { buildConfig true }
+
+    defaultConfig {
+        applicationId 'de.matthiasennen.moviehubadmin'
+        minSdk 23
+        targetSdk 35
+        versionCode appVersionCode
+        versionName "0.1.${appVersionCode}"
+        buildConfigField 'String', 'ADMIN_URL', '"' + adminUrl + '"'
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    signingConfigs {
+        if (signingPropertiesFile.exists()) {
+            release {
+                storeFile file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (signingPropertiesFile.exists()) signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+    }
+}

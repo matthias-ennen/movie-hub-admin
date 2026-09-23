@@ -1,0 +1,18 @@
+:root { font-family: system-ui, sans-serif; color: #f2f4f8; background: #10141b; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 780px; margin: 0 auto; padding: 1.5rem; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+nav { padding: 1rem 0; border-bottom: 1px solid #505663; }
+form { display: grid; gap: 1rem; margin: 1.5rem 0; }
+label { display: grid; gap: .4rem; }
+input, textarea { width: 100%; padding: .7rem; color: #f2f4f8; background: #252b35; border: 1px solid #7c8493; border-radius: .4rem; font: inherit; }
+textarea { resize: vertical; }
+fieldset { display: grid; gap: .6rem; border: 1px solid #505663; border-radius: .4rem; }
+fieldset label { display: flex; align-items: center; gap: .5rem; }
+fieldset input { width: auto; }
+.dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+button { width: fit-content; padding: .8rem 1.1rem; background: #ad3442; color: white; border: 0; border-radius: .4rem; font: inherit; cursor: pointer; }
+button:disabled { opacity: .5; cursor: wait; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #f5b64e; }
+.error { color: #ff9d9d; }.success { color: #a9e7b5; }
