@@ -1,3 +1,8 @@
 {
-  "projects": { "default": "movie-hub-62459" }
+  "projects": { "default": "movie-hub-62459" },
+  "targets": {
+    "movie-hub-62459": {
+      "hosting": { "admin": ["movie-hub-admin-62459"] }
+    }
+  }
 }

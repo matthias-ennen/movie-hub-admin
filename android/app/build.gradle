@@ -7,7 +7,7 @@ def signingProperties = new Properties()
 if (signingPropertiesFile.exists()) signingPropertiesFile.withInputStream { signingProperties.load(it) }
 def runNumber = System.getenv('GITHUB_RUN_NUMBER')
 def appVersionCode = runNumber ? runNumber.toInteger() : 1
-def adminUrl = System.getenv('MOVIE_HUB_ADMIN_URL') ?: 'https://movie-hub-62459-admin.web.app/'
+def adminUrl = System.getenv('MOVIE_HUB_ADMIN_URL') ?: 'https://movie-hub-admin-62459.web.app/'
 if (!adminUrl.startsWith('https://') || !adminUrl.endsWith('/')) {
     throw new GradleException('MOVIE_HUB_ADMIN_URL must be an HTTPS origin ending in /.')
 }
