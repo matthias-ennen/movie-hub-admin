@@ -1,6 +1,9 @@
 name: Deploy Movie Hub Admin
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-firebase.yml']
   workflow_dispatch:
     inputs:
       target:
@@ -31,9 +34,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - if: inputs.target == 'functions'
+      - if: github.event_name == 'push' || inputs.target == 'functions'
         run: npm ci --prefix functions
-      - if: inputs.target == 'functions'
+      - if: github.event_name == 'push' || inputs.target == 'functions'
         run: npm test --prefix functions
       - name: Authenticate with the admin-only deployment identity
         uses: google-github-actions/auth@v3
@@ -41,14 +44,11 @@ jobs:
           project_id: movie-hub-62459
           workload_identity_provider: projects/612913221205/locations/global/workloadIdentityPools/movie-hub-admin-github/providers/github
           service_account: github-movie-hub-admin-deploy@movie-hub-62459.iam.gserviceaccount.com
-      - name: Deploy only the separate admin Hosting site
-        if: inputs.target == 'hosting'
-        run: npx --yes firebase-tools@15.30.2 deploy --only hosting:admin --project movie-hub-62459 --non-interactive
       - name: Set up gcloud for function deployment
-        if: inputs.target == 'functions'
+        if: github.event_name == 'push' || inputs.target == 'functions'
         uses: google-github-actions/setup-gcloud@v3
       - name: Deploy only the admin announcement function
-        if: inputs.target == 'functions'
+        if: github.event_name == 'push' || inputs.target == 'functions'
         run: |
           gcloud functions deploy publishAnnouncement \
             --gen2 \
@@ -61,3 +61,6 @@ jobs:
             --service-account=movie-hub-admin-runtime@movie-hub-62459.iam.gserviceaccount.com \
             --build-service-account=projects/movie-hub-62459/serviceAccounts/movie-hub-admin-build@movie-hub-62459.iam.gserviceaccount.com \
             --quiet
+      - name: Deploy only the separate admin Hosting site
+        if: github.event_name == 'push' || inputs.target == 'hosting'
+        run: npx --yes firebase-tools@15.30.2 deploy --only hosting:admin --project movie-hub-62459 --non-interactive
