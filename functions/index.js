@@ -9,8 +9,8 @@ exports.publishAnnouncement = onCall({
   region: 'europe-west1',
   serviceAccount: 'movie-hub-admin-runtime@movie-hub-62459.iam.gserviceaccount.com',
 }, async (request) => {
-  if (!request.auth || request.auth.token.movieHubAdmin !== true) {
-    throw new HttpsError('permission-denied', 'Nur Movie-Hub-Administratoren dürfen Mitteilungen veröffentlichen.')
+  if (!request.auth || request.auth.token.movieHubAdmin !== true || request.auth.token.email_verified !== true) {
+    throw new HttpsError('permission-denied', 'Nur Movie-Hub-Administratoren mit bestätigter E-Mail-Adresse dürfen Mitteilungen veröffentlichen.')
   }
   let announcement
   try { announcement = validateAnnouncement(request.data) }
