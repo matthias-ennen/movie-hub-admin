@@ -28,6 +28,7 @@ async function main() {
     return
   }
   if (applyUid !== user.uid) throw new Error('UID stimmt nicht mit der E-Mail-Adresse überein. Keine Änderung.')
+  if (!user.emailVerified) throw new Error('E-Mail-Adresse ist nicht bestätigt. Keine Admin-Berechtigung vergeben.')
   if (user.customClaims?.movieHubAdmin === true) {
     console.log('Berechtigung ist bereits gesetzt.')
     return
