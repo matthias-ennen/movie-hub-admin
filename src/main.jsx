@@ -5,16 +5,25 @@ import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import './style.css'
 
-const config = {
+const envConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
-const configured = Object.values(config).every(Boolean)
-const app = configured ? initializeApp(config) : null
-const auth = app ? getAuth(app) : null
-const functions = app ? getFunctions(app, import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'europe-west1') : null
+async function loadFirebaseConfig() {
+  let config = envConfig
+  if (!Object.values(envConfig).every(Boolean)) {
+    const response = await fetch('/__/firebase/init.json', { cache: 'no-store' })
+    if (!response.ok) throw new Error('Firebase-Konfiguration konnte nicht geladen werden. Lokal bitte .env.local einrichten.')
+    config = await response.json()
+  }
+  if (!['apiKey', 'authDomain', 'projectId', 'appId'].every((key) => Boolean(config[key]))) {
+    throw new Error('Firebase-Konfiguration ist unvollständig.')
+  }
+  if (config.projectId !== 'movie-hub-62459') throw new Error('Admin-App ist mit einem anderen Firebase-Projekt verbunden.')
+  return config
+}
 
 function localDate(days = 0) {
   const date = new Date(Date.now() + days * 86400000)
@@ -24,6 +33,7 @@ function localDate(days = 0) {
 
 function App() {
   const [user, setUser] = useState(null)
+  const [services, setServices] = useState(null)
   const [checking, setChecking] = useState(true)
   const [allowed, setAllowed] = useState(false)
   const [error, setError] = useState('')
@@ -34,22 +44,35 @@ function App() {
   const [form, setForm] = useState({ title: '', body: '', mode: 'inbox', startsAt: localDate(), expiresAt: localDate(7) })
 
   useEffect(() => {
-    if (!auth) { setChecking(false); return undefined }
-    return onAuthStateChanged(auth, async (current) => {
+    let active = true
+    let unsubscribe = null
+    loadFirebaseConfig().then((config) => {
+      if (!active) return
+      const app = initializeApp(config)
+      const auth = getAuth(app)
+      const functions = getFunctions(app, import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || 'europe-west1')
+      setServices({ auth, functions })
+      unsubscribe = onAuthStateChanged(auth, async (current) => {
+      if (!active) return
       setUser(current)
       setAllowed(false)
       setChecking(true)
       try {
-        if (current) setAllowed((await current.getIdTokenResult(true)).claims.movieHubAdmin === true)
-      } catch { setError('Berechtigung konnte nicht geprüft werden.') }
-      finally { setChecking(false) }
-    })
+        if (current) {
+          const hasClaim = (await current.getIdTokenResult(true)).claims.movieHubAdmin === true
+          if (active) setAllowed(hasClaim)
+        }
+      } catch { if (active) setError('Berechtigung konnte nicht geprüft werden.') }
+      finally { if (active) setChecking(false) }
+      })
+    }).catch((failure) => { if (active) { setError(failure.message); setChecking(false) } })
+    return () => { active = false; unsubscribe?.() }
   }, [])
 
   async function login(event) {
     event.preventDefault()
     setError('')
-    try { await signInWithEmailAndPassword(auth, email, password); setPassword('') }
+    try { await signInWithEmailAndPassword(services.auth, email, password); setPassword('') }
     catch { setError('Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.') }
   }
 
@@ -68,7 +91,7 @@ function App() {
         startsAt: new Date(form.startsAt).toISOString(),
         expiresAt: new Date(form.expiresAt).toISOString(),
       }
-      const response = await httpsCallable(functions, 'publishAnnouncement')(payload)
+      const response = await httpsCallable(services.functions, 'publishAnnouncement')(payload)
       setResult(`Mitteilung veröffentlicht (ID: ${response.data.id}).`)
       setForm((previous) => ({ ...previous, title: '', body: '' }))
     } catch (failure) {
@@ -78,10 +101,9 @@ function App() {
     } finally { setBusy(false) }
   }
 
-  if (!configured) return <main><h1>Movie Hub Admin</h1><p>Firebase-Konfiguration fehlt. Siehe README.</p></main>
   return <main>
-    <header><h1>Movie Hub Admin</h1>{user && <button type="button" onClick={() => signOut(auth)}>Abmelden</button>}</header>
-    {checking ? <p>Berechtigung wird geprüft …</p> : !user ? <form onSubmit={login}>
+    <header><h1>Movie Hub Admin</h1>{user && <button type="button" onClick={() => signOut(services.auth)}>Abmelden</button>}</header>
+    {checking ? <p>Berechtigung wird geprüft …</p> : !services ? null : !user ? <form onSubmit={login}>
       <h2>Anmelden</h2>
       <label>E-Mail<input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
       <label>Passwort<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>

@@ -11,13 +11,13 @@ Separate Verwaltungsoberfläche für Movie Hub. Die erste Funktion veröffentlic
 
 ## Lokal
 
-Node 22: `npm install`, `cp .env.example .env.local`, Firebase-Web-Konfiguration des vorhandenen Projekts eintragen, `npm run dev`. Für die Funktion: `cd functions && npm install && npm test`.
+Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Konfiguration des vorhandenen Projekts eintragen, `npm run dev`. Für die Funktion: `cd functions && npm install && npm test`. Auf Firebase Hosting lädt die App die Web-Konfiguration automatisch über `/__/firebase/init.json` und prüft die Projekt-ID.
 
 ## Vor Inbetriebnahme
 
-1. Für das eigene Firebase-Auth-Konto den Custom Claim `movieHubAdmin: true` mit einem **vertrauenswürdigen Admin-SDK-Prozess** setzen; anschließend neu anmelden. Niemals einen Service-Account-Schlüssel in dieses Repository oder die Web-App übernehmen. Die Vergabe dieses Claims ist ein einmaliger administrativer Schritt und darf nicht durch die Web-App selbst möglich sein.
+1. Für das **bestehende Movie-Hub-Konto** den Claim `movieHubAdmin: true` einmalig vergeben. In einer berechtigten Umgebung mit Application Default Credentials im Verzeichnis `functions` erst `node scripts/grantAdmin.js --email <Adresse>` als Vorschau ausführen. Angezeigte UID prüfen; dann `node scripts/grantAdmin.js --email <Adresse> --apply-uid <UID>`. Der Vorgang erhält andere bestehende Claims. Die Berechtigung bleibt an der UID, auch wenn sich die E-Mail-Adresse später ändert. Anschließend neu anmelden. Niemals einen Service-Account-Schlüssel in dieses Repository oder die Web-App übernehmen.
 2. Cloud Functions für das vorhandene Projekt bereitstellen (`firebase deploy --only functions:movie-hub-admin --project movie-hub-62459`). Das benötigt entsprechende Projektberechtigungen und möglicherweise einen abrechenbaren Firebase-Tarif.
-3. Admin-Web-App unter einer **eigenen Hosting-Site/Domain** bereitstellen. Die Konfiguration hier enthält bewusst kein Hosting-Ziel: Ein ungezielter Deploy auf die bestehende Movie-Hub-Site könnte diese überschreiben. Domain in Firebase Auth unter autorisierte Domains eintragen.
+3. Admin-Web-App unter einer **eigenen Hosting-Site/Domain** bereitstellen: `firebase hosting:sites:create <eindeutige-site-id> --project movie-hub-62459`, dann `firebase target:apply hosting admin <eindeutige-site-id> --project movie-hub-62459`. Der Hosting-Target `admin` steht bereits in `firebase.json`; ohne Zuordnung wird nicht die Movie-Hub-Site überschrieben. `npm run build`, dann `firebase deploy --only hosting:admin --project movie-hub-62459`. Domain in Firebase Auth unter autorisierte Domains eintragen.
 4. Firestore-Regeln und Movie-Hub-Client aus PR #313 bereitstellen und End-to-End-Versand mit einem Testkonto und Ablaufdatum prüfen.
 
 Das Repository enthält weder Firebase-Secrets noch ein Verfahren, das sich selbst Admin-Rechte erteilen kann. Das Firebase-Web-Konfigurationsobjekt ist kein geheimer Schlüssel; die Berechtigung wird an der Function durch Auth-Claims geprüft.
