@@ -5,7 +5,7 @@ Separate Verwaltungsoberfläche für Movie Hub. Die erste Funktion veröffentlic
 ## Architektur
 
 - Anmeldung über **dasselbe Firebase-Auth-Projekt** wie Movie Hub. Die Oberfläche zeigt den Versand nur bei Custom Claim `movieHubAdmin: true` an.
-- `publishAnnouncement` prüft den Claim **serverseitig**, validiert Inhalt und Gültigkeit und schreibt mit dem Admin SDK in Firestore. Ein manipuliertes Web-Frontend kann die Prüfung nicht umgehen.
+- `publishAnnouncement` prüft den Claim und die bestätigte E-Mail-Adresse **serverseitig**, validiert Inhalt und Gültigkeit und schreibt mit dem Admin SDK in Firestore. Ein manipuliertes Web-Frontend kann die Prüfung nicht umgehen.
 - `announcements/{id}` enthält `schemaVersion: 1`, `status: published`, `mode: inbox | startup`, `title`, `body`, `startsAt`, `expiresAt`, `createdAt`, `createdBy`. Die Zeitfelder sind Firestore Timestamps. Das Format entspricht Movie-Hub-PR #313.
 - Keine Kopie pro Nutzer: Movie Hub liest veröffentlichte Mitteilungen und speichert nur `users/{uid}/announcementReads/{id}`.
 
@@ -15,7 +15,7 @@ Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Kon
 
 ## Vor Inbetriebnahme
 
-1. Für das **bestehende Movie-Hub-Konto** den Claim `movieHubAdmin: true` einmalig vergeben. In einer berechtigten Umgebung mit Application Default Credentials im Verzeichnis `functions` erst `node scripts/grantAdmin.js --email <Adresse>` als Vorschau ausführen. Angezeigte UID prüfen; dann `node scripts/grantAdmin.js --email <Adresse> --apply-uid <UID>`. Der Vorgang erhält andere bestehende Claims. Die Berechtigung bleibt an der UID, auch wenn sich die E-Mail-Adresse später ändert. Anschließend neu anmelden. Niemals einen Service-Account-Schlüssel in dieses Repository oder die Web-App übernehmen.
+1. Für das **bestehende Movie-Hub-Konto** die E-Mail-Adresse bestätigen: in der Admin-App anmelden, „Bestätigungs-E-Mail senden“ wählen, den Link im Postfach öffnen und in der App „Ich habe die E-Mail bestätigt“ wählen. Danach den Claim `movieHubAdmin: true` einmalig vergeben. In einer berechtigten Umgebung mit Application Default Credentials im Verzeichnis `functions` erst `node scripts/grantAdmin.js --email <Adresse>` als Vorschau ausführen. Angezeigte E-Mail, UID und Bestätigungsstatus prüfen; dann `node scripts/grantAdmin.js --email <Adresse> --apply-uid <UID>`. Das Skript verweigert die Freigabe für unbestätigte E-Mail-Adressen und erhält andere bestehende Claims. Die Berechtigung bleibt an der UID, auch wenn sich die E-Mail-Adresse später ändert. Anschließend neu anmelden. Niemals einen Service-Account-Schlüssel in dieses Repository oder die Web-App übernehmen.
 2. Das eigene Laufzeit-Dienstkonto und die Berechtigungen für die Function wie unten beschrieben einrichten. Dann den manuellen Workflow **Deploy Movie Hub Admin** mit `target=functions` ausführen. Das Projekt benötigt einen abrechenbaren Firebase-Tarif.
 3. Die Admin-Web-App ist auf der separaten Hosting-Site `movie-hub-admin-62459` bereits veröffentlicht: `https://movie-hub-admin-62459.web.app/`. Der Workflow kann sie mit `target=hosting` aktualisieren. Falls später OAuth-Anmeldung hinzukommt, die Domain zusätzlich unter Firebase Auth → Autorisierte Domains eintragen.
 4. Firestore-Regeln und Movie-Hub-Client aus PR #313 bereitstellen und End-to-End-Versand mit einem Testkonto und Ablaufdatum prüfen.
