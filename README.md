@@ -20,6 +20,10 @@ Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Kon
 3. Admin-Web-App auf der **bereits angelegten, separaten Hosting-Site** `movie-hub-admin-62459` bereitstellen. Der Hosting-Target `admin` ist in `.firebaserc` eindeutig dieser Site zugeordnet. `npm run build`, dann `firebase deploy --only hosting:admin --project movie-hub-62459`. Die Adresse lautet `https://movie-hub-admin-62459.web.app/`. Domain in Firebase Auth unter autorisierte Domains eintragen.
 4. Firestore-Regeln und Movie-Hub-Client aus PR #313 bereitstellen und End-to-End-Versand mit einem Testkonto und Ablaufdatum prüfen.
 
+### Bereitstellungszugriff
+
+Der CI-Prüflauf vom 23.09.2026 hat bestätigt, dass der bestehende Google-Cloud-Workload-Identity-Provider GitHub Actions aus `matthias-ennen/movie-hub-admin` derzeit durch seine Attributbedingung ablehnt. Vor einem automatisierten Deployment braucht das Admin-Repository eine auf dieses Repository begrenzte Workload-Identity-Berechtigung und ein geeignetes Deployment-Servicekonto. Die normale Movie-Hub-Deployment-Identität nicht ungeprüft für das neue Repository freischalten. Bis dahin ist der Code samt APK gebaut, die Hosting-Site hat aber noch keinen Release und die Function ist noch nicht bereitgestellt.
+
 Das Repository enthält weder Firebase-Secrets noch ein Verfahren, das sich selbst Admin-Rechte erteilen kann. Das Firebase-Web-Konfigurationsobjekt ist kein geheimer Schlüssel; die Berechtigung wird an der Function durch Auth-Claims geprüft.
 
 ## Android-App und Aktualisierungen
