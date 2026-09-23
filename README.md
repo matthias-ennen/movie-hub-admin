@@ -21,3 +21,14 @@ Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Kon
 4. Firestore-Regeln und Movie-Hub-Client aus PR #313 bereitstellen und End-to-End-Versand mit einem Testkonto und Ablaufdatum prüfen.
 
 Das Repository enthält weder Firebase-Secrets noch ein Verfahren, das sich selbst Admin-Rechte erteilen kann. Das Firebase-Web-Konfigurationsobjekt ist kein geheimer Schlüssel; die Berechtigung wird an der Function durch Auth-Claims geprüft.
+
+## Android-App und Aktualisierungen
+
+Die Android-App ist ein kleiner WebView-Wrapper für die **eigene Admin-Hosting-Adresse**. Sie öffnet nur die fest eingetragene HTTPS-Domain. Die Bildschirmbezeichnung lautet wie bei der normalen App **Movie Hub**; das Admin-Icon ist die vom Nutzer ausgewählte erste Variante mit blauem Zahnrad. Der Android-Paketname `de.matthiasennen.moviehubadmin` ist von `de.matthiasennen.moviehub` getrennt, damit beide Apps nebeneinander installiert werden können.
+
+Der Workflow **Android APK** erstellt bei jedem Lauf eine Test-APK. Diese Debug-APK ist wegen wechselnder CI-Debug-Signaturen **nicht** für dauerhaftes Aktualisieren bestehender Installationen gedacht. Die dauerhaft aktualisierbare Release-APK entsteht, sobald folgende Werte im Admin-Repository eingerichtet sind:
+
+- Ein dauerhaft verwahrter eigener Release-Keystore mit Alias `movie-hub-admin`; GitHub-Secrets `MOVIE_HUB_ADMIN_KEYSTORE_BASE64` und `MOVIE_HUB_ADMIN_KEYSTORE_PASSWORD` (Passwort für Store und Schlüssel). Keystore und Passwort niemals einchecken. Der gleiche Keystore muss bei allen späteren Builds verwendet werden.
+- GitHub-Variable `MOVIE_HUB_ADMIN_URL` mit der tatsächlichen HTTPS-Adresse der bereitgestellten Admin-Hosting-Site einschließlich abschließendem `/`.
+
+Der Paketname bleibt konstant; `versionCode` steigt mit der GitHub-Actions-Laufnummer. So lässt sich eine neuere **Release-APK über eine ältere Release-APK installieren**, ohne die Admin-App zu löschen. Ein Wechsel des Schlüssels oder Paketnamens würde diese Update-Kette unterbrechen. Das Admin-Frontend wird separat auf Hosting aktualisiert und braucht für reine Web-Änderungen keine neue APK.

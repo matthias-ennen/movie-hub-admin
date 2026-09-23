@@ -4,3 +4,9 @@ dist/
 .env.local
 functions/node_modules/
 functions/.env
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/signing.properties
+android/*.jks
