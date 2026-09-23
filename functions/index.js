@@ -5,7 +5,10 @@ const { validateAnnouncement } = require('./announcementValidation')
 
 initializeApp()
 
-exports.publishAnnouncement = onCall({ region: 'europe-west1' }, async (request) => {
+exports.publishAnnouncement = onCall({
+  region: 'europe-west1',
+  serviceAccount: 'movie-hub-admin-runtime@movie-hub-62459.iam.gserviceaccount.com',
+}, async (request) => {
   if (!request.auth || request.auth.token.movieHubAdmin !== true) {
     throw new HttpsError('permission-denied', 'Nur Movie-Hub-Administratoren dürfen Mitteilungen veröffentlichen.')
   }
