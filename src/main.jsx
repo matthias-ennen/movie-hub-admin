@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { initializeApp } from 'firebase/app'
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth'
+import { getAuth, onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import './style.css'
 
@@ -36,6 +36,7 @@ function App() {
   const [services, setServices] = useState(null)
   const [checking, setChecking] = useState(true)
   const [allowed, setAllowed] = useState(false)
+  const [verified, setVerified] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
@@ -56,11 +57,12 @@ function App() {
       if (!active) return
       setUser(current)
       setAllowed(false)
+      setVerified(Boolean(current?.emailVerified))
       setChecking(true)
       try {
         if (current) {
           const hasClaim = (await current.getIdTokenResult(true)).claims.movieHubAdmin === true
-          if (active) setAllowed(hasClaim)
+          if (active) setAllowed(current.emailVerified && hasClaim)
         }
       } catch { if (active) setError('Berechtigung konnte nicht geprüft werden.') }
       finally { if (active) setChecking(false) }
@@ -74,6 +76,36 @@ function App() {
     setError('')
     try { await signInWithEmailAndPassword(services.auth, email, password); setPassword('') }
     catch { setError('Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.') }
+  }
+
+  async function requestVerification() {
+    setBusy(true)
+    setError('')
+    setResult('')
+    try {
+      await sendEmailVerification(user)
+      setResult(`Bestätigungs-E-Mail an ${user.email} gesendet. Bitte auch den Spam-Ordner prüfen.`)
+    } catch {
+      setError('Die Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen.')
+    } finally { setBusy(false) }
+  }
+
+  async function checkVerification() {
+    setBusy(true)
+    setError('')
+    setResult('')
+    try {
+      await user.reload()
+      setVerified(user.emailVerified)
+      if (user.emailVerified) {
+        setAllowed((await user.getIdTokenResult(true)).claims.movieHubAdmin === true)
+        setResult('E-Mail-Adresse bestätigt. Die Admin-Berechtigung wurde erneut geprüft.')
+      } else {
+        setError('Die E-Mail-Adresse ist noch nicht bestätigt. Bitte den Link in der E-Mail öffnen.')
+      }
+    } catch {
+      setError('Der Bestätigungsstatus konnte nicht geprüft werden. Bitte erneut versuchen.')
+    } finally { setBusy(false) }
   }
 
   async function publish(event) {
@@ -108,7 +140,12 @@ function App() {
       <label>E-Mail<input required type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} /></label>
       <label>Passwort<input required type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
       <button type="submit">Anmelden</button>
-    </form> : !allowed ? <p>Dieses Konto hat keine Admin-Berechtigung.</p> : <>
+    </form> : !verified ? <section>
+      <h2>E-Mail-Adresse bestätigen</h2>
+      <p>Für die Admin-Berechtigung muss die E-Mail-Adresse {user.email} bestätigt sein.</p>
+      <button type="button" disabled={busy} onClick={requestVerification}>Bestätigungs-E-Mail senden</button>{' '}
+      <button type="button" disabled={busy} onClick={checkVerification}>Ich habe die E-Mail bestätigt</button>
+    </section> : !allowed ? <p>Dieses Konto hat noch keine Admin-Berechtigung.</p> : <>
       <nav aria-label="Admin-Bereiche"><strong>Mitteilungen</strong></nav>
       <form onSubmit={publish}>
         <h2>Mitteilung veröffentlichen</h2>
