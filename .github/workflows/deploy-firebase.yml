@@ -1,6 +1,9 @@
 name: Deploy Movie Hub Admin
 
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/deploy-firebase.yml']
   workflow_dispatch:
     inputs:
       target:
@@ -42,7 +45,7 @@ jobs:
           workload_identity_provider: projects/612913221205/locations/global/workloadIdentityPools/movie-hub-admin-github/providers/github
           service_account: github-movie-hub-admin-deploy@movie-hub-62459.iam.gserviceaccount.com
       - name: Deploy only the separate admin Hosting site
-        if: inputs.target == 'hosting'
+        if: github.event_name == 'push' || inputs.target == 'hosting'
         run: npx --yes firebase-tools@15.30.2 deploy --only hosting:admin --project movie-hub-62459 --non-interactive
       - name: Set up gcloud for function deployment
         if: inputs.target == 'functions'
