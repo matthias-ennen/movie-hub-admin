@@ -40,6 +40,7 @@ function App() {
   const [error, setError] = useState('')
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pendingPublication, setPendingPublication] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [form, setForm] = useState({ title: '', body: '', mode: 'inbox', startsAt: localDate(), expiresAt: localDate(7) })
@@ -108,24 +109,30 @@ function App() {
     } finally { setBusy(false) }
   }
 
-  async function publish(event) {
+  function reviewPublication(event) {
     event.preventDefault()
     if (busy) return
-    if (!window.confirm(`Mitteilung „${form.title.trim()}“ für alle Nutzer veröffentlichen?\n\nAnzeige: ${form.mode === 'startup' ? 'Startfenster und Posteingang' : 'nur Posteingang'}\nGültig bis: ${new Date(form.expiresAt).toLocaleString('de-DE')}`)) return
+    setPendingPublication({
+      title: form.title.trim(),
+      body: form.body.trim(),
+      mode: form.mode,
+      startsAt: new Date(form.startsAt).toISOString(),
+      expiresAt: new Date(form.expiresAt).toISOString(),
+    })
+    setError('')
+    setResult('')
+  }
+
+  async function publish() {
+    if (!pendingPublication || busy) return
     setBusy(true)
     setError('')
     setResult('')
     try {
-      const payload = {
-        title: form.title,
-        body: form.body,
-        mode: form.mode,
-        startsAt: new Date(form.startsAt).toISOString(),
-        expiresAt: new Date(form.expiresAt).toISOString(),
-      }
-      const response = await httpsCallable(services.functions, 'publishAnnouncement')(payload)
+      const response = await httpsCallable(services.functions, 'publishAnnouncement')(pendingPublication)
       setResult(`Mitteilung veröffentlicht (ID: ${response.data.id}).`)
       setForm((previous) => ({ ...previous, title: '', body: '' }))
+      setPendingPublication(null)
     } catch (failure) {
       setError(failure.code === 'functions/permission-denied'
         ? 'Für dieses Konto fehlt die Admin-Berechtigung.'
@@ -147,7 +154,7 @@ function App() {
       <button type="button" disabled={busy} onClick={checkVerification}>Ich habe die E-Mail bestätigt</button>
     </section> : !allowed ? <p>Dieses Konto hat noch keine Admin-Berechtigung.</p> : <>
       <nav aria-label="Admin-Bereiche"><strong>Mitteilungen</strong></nav>
-      <form onSubmit={publish}>
+      <form onSubmit={reviewPublication}>
         <h2>Mitteilung veröffentlichen</h2>
         <label>Titel<input required maxLength={120} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
         <label>Nachricht<textarea required rows={8} maxLength={4000} value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })} /></label>
@@ -162,8 +169,23 @@ function App() {
         <p>Die Zeiten gelten in deiner lokalen Zeitzone. Abgelaufene Mitteilungen werden in Movie Hub nicht mehr angezeigt.</p>
         <button type="submit" disabled={busy}>{busy ? 'Wird veröffentlicht …' : 'Veröffentlichen'}</button>
       </form>
+      {pendingPublication && <div className="confirmation-backdrop">
+        <section className="confirmation-panel" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
+          <h2 id="confirmation-title">Mitteilung veröffentlichen?</h2>
+          <p>Diese Mitteilung wird für alle Nutzer veröffentlicht.</p>
+          <p><strong>{pendingPublication.title}</strong></p>
+          <p className="confirmation-body">{pendingPublication.body}</p>
+          <p>Anzeige: {pendingPublication.mode === 'startup' ? 'Startfenster und Posteingang' : 'nur Posteingang'}</p>
+          <p>Gültig bis: {new Date(pendingPublication.expiresAt).toLocaleString('de-DE')}</p>
+          {error && <p className="error" role="alert">{error}</p>}
+          <div className="confirmation-actions">
+            <button type="button" disabled={busy} onClick={() => { setPendingPublication(null); setError('') }}>Abbrechen</button>
+            <button type="button" autoFocus disabled={busy} onClick={publish}>{busy ? 'Wird veröffentlicht …' : 'Jetzt veröffentlichen'}</button>
+          </div>
+        </section>
+      </div>}
     </>}
-    {error && <p className="error" role="alert">{error}</p>}
+    {error && !pendingPublication && <p className="error" role="alert">{error}</p>}
     {result && <p className="success" role="status">{result}</p>}
   </main>
 }
