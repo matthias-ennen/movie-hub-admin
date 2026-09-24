@@ -16,3 +16,9 @@ button { width: fit-content; padding: .8rem 1.1rem; background: #ad3442; color: 
 button:disabled { opacity: .5; cursor: wait; }
 button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #f5b64e; }
 .error { color: #ff9d9d; }.success { color: #a9e7b5; }
+.confirmation-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 1rem; background: #000b; }
+.confirmation-panel { width: min(100%, 34rem); max-height: 90vh; overflow: auto; padding: 1.5rem; border: 1px solid #7c8493; border-radius: .6rem; background: #252b35; box-shadow: 0 1rem 3rem #0008; }
+.confirmation-panel h2 { margin-top: 0; }
+.confirmation-body { max-height: 25vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.confirmation-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
+.confirmation-actions button:first-child { background: #505663; }
