@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
+import AnnouncementManagement from './AnnouncementManagement.jsx'
 import './style.css'
 
 const envConfig = {
@@ -41,6 +42,7 @@ function App() {
   const [result, setResult] = useState('')
   const [busy, setBusy] = useState(false)
   const [pendingPublication, setPendingPublication] = useState(null)
+  const [publicationVersion, setPublicationVersion] = useState(0)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [form, setForm] = useState({ title: '', body: '', mode: 'inbox', startsAt: localDate(), expiresAt: localDate(7) })
@@ -48,6 +50,7 @@ function App() {
   useEffect(() => {
     let active = true
     let unsubscribe = null
+    let authRevision = 0
     loadFirebaseConfig().then((config) => {
       if (!active) return
       const app = initializeApp(config)
@@ -56,17 +59,21 @@ function App() {
       setServices({ auth, functions })
       unsubscribe = onAuthStateChanged(auth, async (current) => {
       if (!active) return
+      const revision = ++authRevision
       setUser(current)
       setAllowed(false)
+      setPendingPublication(null)
+      setResult('')
+      setError('')
       setVerified(Boolean(current?.emailVerified))
       setChecking(true)
       try {
         if (current) {
           const hasClaim = (await current.getIdTokenResult(true)).claims.movieHubAdmin === true
-          if (active) setAllowed(current.emailVerified && hasClaim)
+          if (active && revision === authRevision) setAllowed(current.emailVerified && hasClaim)
         }
-      } catch { if (active) setError('Berechtigung konnte nicht geprüft werden.') }
-      finally { if (active) setChecking(false) }
+      } catch { if (active && revision === authRevision) setError('Berechtigung konnte nicht geprüft werden.') }
+      finally { if (active && revision === authRevision) setChecking(false) }
       })
     }).catch((failure) => { if (active) { setError(failure.message); setChecking(false) } })
     return () => { active = false; unsubscribe?.() }
@@ -133,6 +140,7 @@ function App() {
       setResult(`Mitteilung veröffentlicht (ID: ${response.data.id}).`)
       setForm((previous) => ({ ...previous, title: '', body: '' }))
       setPendingPublication(null)
+      setPublicationVersion((previous) => previous + 1)
     } catch (failure) {
       setError(failure.code === 'functions/permission-denied'
         ? 'Für dieses Konto fehlt die Admin-Berechtigung.'
@@ -169,6 +177,7 @@ function App() {
         <p>Die Zeiten gelten in deiner lokalen Zeitzone. Abgelaufene Mitteilungen werden in Movie Hub nicht mehr angezeigt.</p>
         <button type="submit" disabled={busy}>{busy ? 'Wird veröffentlicht …' : 'Veröffentlichen'}</button>
       </form>
+      <AnnouncementManagement key={user.uid} functions={services.functions} refreshKey={publicationVersion} />
       {pendingPublication && <div className="confirmation-backdrop">
         <section className="confirmation-panel" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
           <h2 id="confirmation-title">Mitteilung veröffentlichen?</h2>
@@ -191,3 +200,4 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
+
