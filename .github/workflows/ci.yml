@@ -13,8 +13,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: npm test
       - run: npm run build
       - run: npm ci
         working-directory: functions
       - run: npm test
         working-directory: functions
+

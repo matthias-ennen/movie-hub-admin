@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test src/*.test.js",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -17,3 +18,4 @@
     "vite": "^7.0.0"
   }
 }
+

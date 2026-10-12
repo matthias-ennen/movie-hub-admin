@@ -22,3 +22,21 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .confirmation-body { max-height: 25vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
 .confirmation-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
 .confirmation-actions button:first-child { background: #505663; }
+dialog.confirmation-panel { color: inherit; }
+dialog::backdrop { background: #000b; }
+.announcement-management { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #505663; }
+.management-heading, .announcement-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.management-heading h2, .announcement-heading h3 { margin: 0; }
+.management-heading h2:focus { outline: 3px solid #f5b64e; outline-offset: .3rem; }
+.secondary { background: #505663; }
+.announcement-list { display: grid; gap: 1rem; padding: 0; list-style: none; }
+.announcement-list li { padding: 1.25rem; border: 1px solid #505663; border-radius: .4rem; background: #191f29; min-width: 0; }
+.announcement-heading h3 { overflow-wrap: anywhere; }
+.announcement-status { padding: .3rem .6rem; border: 1px solid #7c8493; border-radius: .4rem; font-size: .9rem; }
+.announcement-body { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 12rem; overflow: auto; }
+.announcement-list dl { display: grid; gap: .5rem; }
+.announcement-list dl div { display: grid; grid-template-columns: minmax(7rem, .4fr) 1fr; gap: .5rem; }
+.announcement-list dt { color: #b9c1ce; }
+.announcement-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { main { padding: 1rem; } .announcement-list dl div { grid-template-columns: 1fr; gap: .15rem; } }
+

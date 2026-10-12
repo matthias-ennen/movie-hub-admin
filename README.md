@@ -1,17 +1,38 @@
 # Movie Hub Admin
 
-Separate Verwaltungsoberfläche für Movie Hub. Die erste Funktion veröffentlicht Mitteilungen für alle angemeldeten Konten. Die normale Movie-Hub-App enthält keine Admin-Rolle und hat keinen Schreibzugriff auf `announcements`.
+Separate Verwaltungsoberfläche für Movie Hub. Sie veröffentlicht globale Mitteilungen, zeigt deren Status/Gültigkeit und ermöglicht die kontrollierte Rücknahme. Die normale Movie-Hub-App enthält keine Admin-Schreiboberfläche und hat keinen Schreibzugriff auf `announcements`.
 
 ## Architektur
 
 - Anmeldung über **dasselbe Firebase-Auth-Projekt** wie Movie Hub. Die Oberfläche zeigt den Versand nur bei Custom Claim `movieHubAdmin: true` an.
-- `publishAnnouncement` prüft den Claim und die bestätigte E-Mail-Adresse **serverseitig**, validiert Inhalt und Gültigkeit und schreibt mit dem Admin SDK in Firestore. Ein manipuliertes Web-Frontend kann die Prüfung nicht umgehen.
-- `announcements/{id}` enthält `schemaVersion: 1`, `status: published`, `mode: inbox | startup`, `title`, `body`, `startsAt`, `expiresAt`, `createdAt`, `createdBy`. Die Zeitfelder sind Firestore Timestamps. Das Format entspricht Movie-Hub-PR #313.
+- Der bestehende Callable-Endpunkt `publishAnnouncement` prüft den Claim und die bestätigte E-Mail-Adresse **vor jeder Aktion serverseitig**. Er unterstützt `action: publish | list | withdraw`; ohne `action` bleibt der bestehende Veröffentlichungsaufruf kompatibel. Ein manipuliertes Web-Frontend kann die Prüfung nicht umgehen. Es entstehen keine neuen Endpunkte, IAM-Freigaben oder Client-Firestore-Schreibrechte.
+- `announcements/{id}` enthält `schemaVersion: 1`, `status: published | withdrawn`, `mode: inbox | startup`, `title`, `body`, `startsAt`, `expiresAt`, `createdAt`, `createdBy`. Rücknahme ergänzt `withdrawnAt` und `withdrawnBy`. Die Zeitfelder sind Firestore Timestamps. Der Veröffentlichungsvertrag aus Movie-Hub-PR #313 bleibt kompatibel.
 - Keine Kopie pro Nutzer: Movie Hub liest veröffentlichte Mitteilungen und speichert nur `users/{uid}/announcementReads/{id}`.
+
+## Mitteilungen verwalten (#11)
+
+Unter dem vorhandenen Formular stehen noch gültige und geplante Mitteilungen mit Anzeigeart, Beginn, Ende und Status. Die Liste lädt beim Öffnen, nach einer Veröffentlichung/Rücknahme und über **Aktualisieren**. Weitere Seiten werden mit **Weitere laden** angefordert (20 Einträge, 21 Dokumente einschließlich Fortsetzungsprüfung). Abfrage und Cursor nutzen Gültig-bis plus Dokument-ID; kein vollständiger Historienabruf, kein Netzwerk-Polling und kein zusätzlicher zusammengesetzter Index. Ein lokaler 30-Sekunden-Takt aktualisiert nur die Statusanzeige.
+
+**Zurückziehen** öffnet eine Bestätigung mit Titel, Anzeigeart und Ablaufzeit; **Abbrechen** ist vorausgewählt. Erst **Jetzt zurückziehen** schreibt den Status in einer Transaktion. Auch geplante Meldungen lassen sich vor ihrem Beginn zurücknehmen. Abgelaufene, fehlende oder nicht veröffentlichte Einträge werden nicht verändert. Wiederholte Rücknahmen sind idempotent und erhalten den ersten Rücknahmevermerk. Nachrichtentext, ursprünglicher Absender und alle Lesestände bleiben erhalten. Zurückgezogene Meldungen bleiben bis zum ursprünglichen Ablauf in der Admin-Liste sichtbar, können aber nicht reaktiviert werden.
+
+Der normale Movie-Hub-Listener liest bereits ausschließlich `published`. Eine verbundene App entfernt zurückgezogene Meldungen dadurch aus Posteingang, Ungelesen-Zähler und Startfenster; offline erhält sie die Änderung nach Wiederherstellung der Verbindung. Die manuelle Smartphone-/Fire-TV-Ende-zu-Ende-Abnahme bleibt in [movie-hub#312](https://github.com/matthias-ennen/movie-hub/issues/312) offen. Persönliche Titelbeobachtungen gehören weiterhin ausschließlich in die normale App.
+
+### Bereitstellung und Geräteabnahme
+
+Nach erfolgreicher CI zunächst den vorhandenen manuellen Workflow **Deploy Movie Hub Admin** auf `main` mit `target=functions`, danach mit `target=hosting` ausführen. Die Backend-Aktualisierung bleibt mit dem bisherigen Frontend kompatibel; das neue Frontend benötigt die neue Backend-Version. Keine Änderung an der normalen Hosting-Site, IAM, Firestore-Regeln oder Android-Hülle; für diese Erweiterung genügt danach ein vollständiger Neustart der Admin-App.
+
+Für den gemeinsamen Test #11 / movie-hub#312:
+
+1. Admin-Liste auf Smartphone öffnen; Anzeigeart, Zeiten, Status und leeren Zustand prüfen. **Zurückziehen → Abbrechen** muss den Eintrag unverändert lassen.
+2. Eine bewusst ausgewählte, noch gültige Testmitteilung zurückziehen. Auf verbundenem Smartphone und Fire TV verschwinden ihr Posteingangseintrag, ihr ungelesener Badge-Anteil und ggf. ihr offenes Startfenster. Kein erneutes Startfenster nach App-Neustart.
+3. Ursprüngliche Veröffentlichung und Rücknahmezeit bleiben in der Admin-Liste nachvollziehbar; ursprünglicher Absender/Inhalt und Lesestände werden nicht gelöscht.
+4. Die weiteren Tests für globale Lesestände, Kontowechsel, Anzeigearten und normalen Ablauf bleiben eigenständige Prüfpunkte in movie-hub#312/#381. Eine Abnahme der persönlichen Beobachtungsverwaltung ersetzt sie nicht.
+
+Es wird bei Implementierung oder Deployment keine Testmitteilung an alle Nutzer versandt und keine bestehende Mitteilung automatisch zurückgezogen.
 
 ## Lokal
 
-Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Konfiguration des vorhandenen Projekts eintragen, `npm run dev`. Für die Funktion: `cd functions && npm install && npm test`. Auf Firebase Hosting lädt die App die Web-Konfiguration automatisch über `/__/firebase/init.json` und prüft die Projekt-ID.
+Node 22: `npm install`, `cp .env.example .env.local`, lokal die Firebase-Web-Konfiguration des vorhandenen Projekts eintragen, `npm test`, `npm run dev`. Für die Funktion: `cd functions && npm install && npm test`. Auf Firebase Hosting lädt die App die Web-Konfiguration automatisch über `/__/firebase/init.json` und prüft die Projekt-ID.
 
 ## Vor Inbetriebnahme
 
@@ -55,3 +76,4 @@ Auf einem **eigenen Rechner mit Java JDK** `bash scripts/create-android-signing-
 Im Admin-Repository unter **Settings → Secrets and variables → Actions** zwei *Repository secrets* hinterlegen: den gesamten Inhalt der `.jks.b64`-Datei als `MOVIE_HUB_ADMIN_KEYSTORE_BASE64` und das gewählte Passwort als `MOVIE_HUB_ADMIN_KEYSTORE_PASSWORD`. Schlüsseldatei und Passwort zusätzlich getrennt und dauerhaft sichern; **nicht im Chat oder in einem Issue teilen**. Die Base64-Datei nach dem Eintragen sicher vom Arbeitsrechner entfernen. Mit der fest hinterlegten Hosting-Adresse liefert der Android-Workflow eine signierte Release-APK. Android akzeptiert spätere APK-Updates nur mit **demselben Schlüssel**.
 
 Der Paketname bleibt konstant; `versionCode` steigt mit der GitHub-Actions-Laufnummer des Admin-Workflows. So lässt sich eine neuere **Release-APK über eine ältere Release-APK installieren**, ohne die Admin-App zu löschen. Ein Wechsel des Schlüssels oder Paketnamens würde diese Update-Kette unterbrechen. Die normale und die Admin-App haben voneinander unabhängige Schlüssel. Das Admin-Frontend wird separat auf Hosting aktualisiert und braucht für reine Web-Änderungen keine neue APK.
+
