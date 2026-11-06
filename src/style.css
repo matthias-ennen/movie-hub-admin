@@ -40,3 +40,26 @@ dialog::backdrop { background: #000b; }
 .announcement-list dd { margin: 0; overflow-wrap: anywhere; }
 @media (max-width: 480px) { main { padding: 1rem; } .announcement-list dl div { grid-template-columns: 1fr; gap: .15rem; } }
 
+
+/* Playlist connections: keep the existing announcements view untouched. */
+.admin-tabs { display: flex; gap: .5rem; flex-wrap: wrap; }
+.admin-tabs button { background: #252b35; border: 1px solid #505663; }
+.admin-tabs button[aria-current="page"] { background: #ad3442; border-color: #dd6875; }
+.connection-card { margin-top: 1.5rem; padding: 1.35rem; border: 1px solid #505663; border-radius: .6rem; background: #191f29; }
+.connection-card h2 { margin: 0; }
+.setup-note { padding: 1rem; border-left: 3px solid #f5b64e; background: #252b35; line-height: 1.55; }
+.playlist-list { display: grid; gap: .85rem; padding: 0; list-style: none; }
+.playlist-list > li { min-width: 0; padding: 1.1rem; border: 1px solid #505663; border-radius: .5rem; }
+.playlist-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; }
+.playlist-line h3 { margin: 0 0 .4rem; }
+.playlist-kind, .playlist-status { display: inline-block; padding: .2rem .45rem; margin: 0 .4rem .5rem 0; border: 1px solid #7c8493; border-radius: .35rem; font-size: .83rem; }
+.playlist-url { display: block; margin: .35rem 0 1rem; color: #a6c9ff; overflow-wrap: anywhere; }
+.playlist-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+.playlist-editor { padding: 1.1rem; border: 1px solid #7c8493; border-radius: .5rem; }
+.playlist-editor h3 { margin: 0; }
+.playlist-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: .7rem; }
+.playlist-editor select { width: 100%; padding: .7rem; color: #f2f4f8; background: #252b35; border: 1px solid #7c8493; border-radius: .4rem; font: inherit; }
+.playlist-check { display: flex; align-items: center; gap: .5rem; }
+.playlist-check input { width: auto; }
+.playlist-editor input:disabled { opacity: .8; }
+@media (max-width: 600px) { .playlist-fields { grid-template-columns: 1fr; } .connection-card { padding: 1rem; } }
