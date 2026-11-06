@@ -47,7 +47,7 @@ jobs:
       - name: Set up gcloud for function deployment
         if: inputs.target == 'functions'
         uses: google-github-actions/setup-gcloud@v3
-      - name: Deploy only the admin announcement function
+      - name: Deploy the existing announcement function
         if: inputs.target == 'functions'
         run: |
           gcloud functions deploy publishAnnouncement \
@@ -57,6 +57,20 @@ jobs:
             --runtime=nodejs22 \
             --source=functions \
             --entry-point=publishAnnouncement \
+            --trigger-http \
+            --service-account=movie-hub-admin-runtime@movie-hub-62459.iam.gserviceaccount.com \
+            --build-service-account=projects/movie-hub-62459/serviceAccounts/movie-hub-admin-build@movie-hub-62459.iam.gserviceaccount.com \
+            --quiet
+      - name: Deploy admin playlist management function
+        if: inputs.target == 'functions'
+        run: |
+          gcloud functions deploy manageYoutubePlaylists \
+            --gen2 \
+            --project=movie-hub-62459 \
+            --region=europe-west1 \
+            --runtime=nodejs22 \
+            --source=functions \
+            --entry-point=manageYoutubePlaylists \
             --trigger-http \
             --service-account=movie-hub-admin-runtime@movie-hub-62459.iam.gserviceaccount.com \
             --build-service-account=projects/movie-hub-62459/serviceAccounts/movie-hub-admin-build@movie-hub-62459.iam.gserviceaccount.com \

@@ -4,6 +4,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import { getFunctions, httpsCallable } from 'firebase/functions'
 import AnnouncementManagement from './AnnouncementManagement.jsx'
+import PlaylistManagement from './PlaylistManagement.jsx'
 import './style.css'
 
 const envConfig = {
@@ -34,6 +35,7 @@ function localDate(days = 0) {
 
 function App() {
   const [user, setUser] = useState(null)
+  const [activePage, setActivePage] = useState('announcements')
   const [services, setServices] = useState(null)
   const [checking, setChecking] = useState(true)
   const [allowed, setAllowed] = useState(false)
@@ -161,7 +163,13 @@ function App() {
       <button type="button" disabled={busy} onClick={requestVerification}>Bestätigungs-E-Mail senden</button>{' '}
       <button type="button" disabled={busy} onClick={checkVerification}>Ich habe die E-Mail bestätigt</button>
     </section> : !allowed ? <p>Dieses Konto hat noch keine Admin-Berechtigung.</p> : <>
-      <nav aria-label="Admin-Bereiche"><strong>Mitteilungen</strong></nav>
+      <nav aria-label="Admin-Bereiche" className="admin-tabs">
+        <button type="button" aria-current={activePage === 'announcements' ? 'page' : undefined}
+          onClick={() => setActivePage('announcements')}>Mitteilungen</button>
+        <button type="button" aria-current={activePage === 'connections' ? 'page' : undefined}
+          onClick={() => setActivePage('connections')}>Verbindungen</button>
+      </nav>
+      {activePage === 'announcements' && <>
       <form onSubmit={reviewPublication}>
         <h2>Mitteilung veröffentlichen</h2>
         <label>Titel<input required maxLength={120} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} /></label>
@@ -193,6 +201,8 @@ function App() {
           </div>
         </section>
       </div>}
+      </>}
+      {activePage === 'connections' && <PlaylistManagement key={user.uid} functions={services.functions} />}
     </>}
     {error && !pendingPublication && <p className="error" role="alert">{error}</p>}
     {result && <p className="success" role="status">{result}</p>}
